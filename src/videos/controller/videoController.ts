@@ -13,6 +13,11 @@ class VideoController {
   //   const dataBase = await videoService.createPlaylist();
   //   return res.status(200).json(dataBase);
   // };
+
+  public getMaster = async (req: Request, res: Response): Promise<Response> => {
+    const urlMaster = await videoService.getMasterAddress();
+    return res.status(200).json(urlMaster);
+  };
 }
 
 export const videoController = new VideoController();

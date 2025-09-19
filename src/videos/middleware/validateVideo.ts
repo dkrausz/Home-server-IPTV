@@ -32,7 +32,7 @@ class ValidadeVideoMiddleware {
     };
 
     const limits: multer.Options["limits"] = {
-      fileSize: 2 * 1024 * 1024 * 1024,
+      fileSize: 5 * 1024 * 1024 * 1024,
     };
 
     const upload = multer({ storage, fileFilter, limits });
