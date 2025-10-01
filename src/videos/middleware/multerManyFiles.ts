@@ -1,9 +1,9 @@
+import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { AppError } from "../../@shared/appError";
-import fs from "fs";
 
-class ValidadeVideoMiddleware {
+class saveManyFilesMiddleware {
   private tempDir = path.join(process.cwd(), "uploads", "temp");
 
   constructor() {
@@ -12,14 +12,21 @@ class ValidadeVideoMiddleware {
     }
   }
 
-  public validateVideo = (fieldName: string) => {
+  private sanitizeFilename(name: string) {
+    return name.replace(/[:<>"/\\|?*]/g, "-");
+  }
+
+  public UploadVideos = () => {
+    console.log("video vindo");
     const storage = multer.diskStorage({
-      destination: (req, file, cb) => cb(null, this.tempDir),
+      destination: (req, file, cb) => {
+        cb(null, this.tempDir);
+      },
       filename: (req, file, cb) => {
         const ext = path.extname(file.originalname);
         const base = path.basename(file.originalname, ext);
-
-        cb(null, `tempVideo${ext}`);
+        console.log("video");
+        cb(null, `${base}@@${Date.now()}.mp4`);
       },
     });
 
@@ -35,10 +42,10 @@ class ValidadeVideoMiddleware {
       fileSize: 5 * 1024 * 1024 * 1024,
     };
 
-    const upload = multer({ storage, fileFilter, limits });
+    const upload = multer({ storage, limits, fileFilter });
 
-    return upload.single(fieldName);
+    return upload.array("videos");
   };
 }
 
-export const validateVideoMiddleware = new ValidadeVideoMiddleware();
+export const multerManyfiles = new saveManyFilesMiddleware();

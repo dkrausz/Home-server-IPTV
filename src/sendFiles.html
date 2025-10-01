@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Múltiplo</title>
+  </head>
+  <body>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="videos" id="video_input" multiple />
+      <label>
+        Nome do vídeo
+        <input type="text" name="name" />
+      </label>
+      <label>
+        Categoria
+        <input type="text" name="category" />
+      </label>
+      <label>
+        Nome da pasta
+        <input type="text" name="folderName" />
+      </label>
+      <button type="submit">Enviar</button>
+    </form>
+
+    <script>
+      const form = document.getElementById("uploadForm");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); // impede recarregar a página
+
+        const formData = new FormData(form); // pega todos os inputs e arquivos
+        // const fileInput = document.getElementById("video_input");
+
+        // console.log(fileInput);
+
+        // for (let i = 0; i < fileInput.length; i++) {
+        //   formData.append("videos", fileInput[i]);
+        // }
+
+        console.log("formaData", formData.append);
+        try {
+          const res = await fetch("http://localhost:3000/videos/uploads", {
+            method: "POST",
+            body: formData,
+          });
+
+          const text = await res.text();
+          console.log("Resposta do servidor:", text);
+        } catch (err) {
+          console.error("Erro no upload:", err);
+        }
+      });
+    </script>
+  </body>
+</html>

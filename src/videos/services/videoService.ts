@@ -1,4 +1,5 @@
 import fs from "fs";
+import * as promiseFs from "fs/promises";
 import path from "path";
 import ffmpeg from "fluent-ffmpeg";
 import os from "os";
@@ -8,6 +9,8 @@ import fg from "fast-glob";
 import "dotenv/config";
 
 class VideoService {
+  private tempDir = path.join(process.cwd(), "uploads", "temp");
+
   private static videosPath: string = (() => {
     if (!process.env.VIDEO_DIR) {
       throw new Error("Diretorio de Videos não encontrado");
@@ -32,50 +35,41 @@ class VideoService {
     return "localhost";
   }
 
-  public uploadNewVideo = async (payload: Tvideo) => {
+  public uploadNewVideo = async (payload: Tvideo, name: string, dir: string) => {
     if (!payload.folderName) {
       payload.folderName = "";
     }
 
-    const tempDir = path.join(process.cwd(), "uploads", "temp");
-    const tempCompletePath = this.findTempFile(tempDir, "tempVideo");
+    const tempCompletePath = path.join(dir, name);
     const videoDir = path.join(process.cwd(), VideoService.videosPath, payload.folderName);
-    const timestamp = Date.now();
-    const videoName = `${timestamp}-${payload.name}`;
-
-    await this.createTsFiles(tempCompletePath, videoDir, videoName);
-
-    console.log("process", process.cwd());
-    console.log("videoDir", videoDir);
-    const videoData = await this.createVideoData(videoName, VideoService.videosPath, videoName, payload.folderName);
+    const indexPath = await this.createTsFiles(tempCompletePath, videoDir, name);
+    const groupTitle = payload.folderName;
+    const videoData = await this.createVideoData(name, indexPath, groupTitle, VideoService.videosPath);
     this.addToMaster(videoData);
-
     return `Video ${payload.name} adicionado com sucesso`;
   };
 
-  private findTempFile(tempDir: string, baseName: string): string {
-    const files = fs.readdirSync(tempDir);
-    const match = files.find((file) => path.parse(file).name === baseName);
-    if (!match) {
-      throw new AppError(404, "Video nao encontrado");
+  public uploadNewVideoList = async (payload: Tvideo) => {
+    const files = await promiseFs.readdir(this.tempDir);
+    for (let file of files) {
+      const newVideo = await this.uploadNewVideo(payload, file, this.tempDir);
+      console.log("caminho: ", path.join(this.tempDir, file));
+      await promiseFs.unlink(path.join(this.tempDir, file));
+      console.log(newVideo);
     }
-    return path.join(tempDir, match);
-  }
+  };
 
-  private createTsFiles = async (originVideoSource: string, destinationDir: string, videoName: string) => {
-    console.log("create TS Files");
-
+  private createTsFiles = async (originVideoSource: string, destinationDir: string, videoName: string): Promise<string> => {
     const output = path.join(destinationDir, path.parse(videoName).name, "index.m3u8");
-    console.log("output", output);
     fs.mkdirSync(path.dirname(output), { recursive: true });
 
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       ffmpeg(originVideoSource)
         .outputOptions(["-codec: copy", "-start_number 0", "-hls_time 10", "-hls_list_size 0", "-f hls"])
         .output(output)
         .on("end", () => {
           console.log("✅ TS e index.m3u8 criados");
-          resolve();
+          resolve(output);
         })
         .on("error", (err) => {
           console.error("❌ Erro ao criar TS:", err);
@@ -85,21 +79,17 @@ class VideoService {
     });
   };
 
-  private createVideoData = async (videoName: string, destinationDir: string, folderName: string, groupTitle: string): Promise<TDataVideo> => {
+  private createVideoData = async (videoName: string, videoDir: string, groupTitle: string, folderName: string): Promise<TDataVideo> => {
     const ip = this.getLocalIP();
 
-    const videoFolder = await fg([`**/${folderName}/index.m3u8`], {
-      cwd: destinationDir,
-      absolute: false,
-      caseSensitiveMatch: false,
-    });
+    const [name, _] = videoName.split("@@");
 
-    const [_, name] = videoName.split("-");
-
-    const relativePath = videoFolder[0].split(path.sep).join("/");
+    const relativePath = videoDir.split(path.sep).join("/");
     const safePath = encodeURI(relativePath);
 
-    const url = `http://${ip}:3000/videos/${safePath}`;
+    const [_garbage, urlPath] = safePath.split(folderName);
+
+    const url = `http://${ip}:3000/videos${urlPath}`;
 
     const videoData = {
       tvgId: videoName,

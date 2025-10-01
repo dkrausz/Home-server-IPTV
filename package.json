@@ -17,7 +17,9 @@
   "dependencies": {
     "-": "^0.0.1",
     "@iptv/playlist": "^1.2.0",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "cors": "^2.8.5",
     "D": "^1.0.0",
     "dotenv": "^17.2.2",
     "express": "^4.21.2",
