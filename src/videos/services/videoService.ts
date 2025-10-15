@@ -53,9 +53,7 @@ class VideoService {
     const files = await promiseFs.readdir(this.tempDir);
     for (let file of files) {
       const newVideo = await this.uploadNewVideo(payload, file, this.tempDir);
-      console.log("caminho: ", path.join(this.tempDir, file));
       await promiseFs.unlink(path.join(this.tempDir, file));
-      console.log(newVideo);
     }
   };
 

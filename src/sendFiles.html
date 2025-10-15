@@ -27,16 +27,9 @@
       const form = document.getElementById("uploadForm");
 
       form.addEventListener("submit", async (e) => {
-        e.preventDefault(); // impede recarregar a página
+        e.preventDefault();
 
-        const formData = new FormData(form); // pega todos os inputs e arquivos
-        // const fileInput = document.getElementById("video_input");
-
-        // console.log(fileInput);
-
-        // for (let i = 0; i < fileInput.length; i++) {
-        //   formData.append("videos", fileInput[i]);
-        // }
+        const formData = new FormData(form);
 
         console.log("formaData", formData.append);
         try {
