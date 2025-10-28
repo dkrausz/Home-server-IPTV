@@ -5,11 +5,14 @@ import ffmpeg from "fluent-ffmpeg";
 import os from "os";
 import { TDataVideo, Tvideo } from "../interfaces/interfaces";
 import { AppError } from "../../@shared/appError";
-import fg from "fast-glob";
 import "dotenv/config";
 
 class VideoService {
   private tempDir = path.join(process.cwd(), "uploads", "temp");
+
+  constructor() {
+    this.updateMasterFile();
+  }
 
   private static videosPath: string = (() => {
     if (!process.env.VIDEO_DIR) {
@@ -35,25 +38,51 @@ class VideoService {
     return "localhost";
   }
 
-  public uploadNewVideo = async (payload: Tvideo, name: string, dir: string) => {
+  private updateMasterFile = () => {
+    const masterPath = path.join(process.cwd(), VideoService.videosPath, "master.m3u");
+    const ip = this.getLocalIP();
+
+    if (!fs.existsSync(masterPath)) {
+      console.log("Arquivo master.m3u não existe");
+      return;
+    }
+
+    let content = fs.readFileSync(masterPath, "utf-8");
+    content = content.replace(/http:\/\/\d+\.\d+\.\d+\.\d+:3000/g, `http://${ip}:3000`);
+
+    fs.writeFileSync(masterPath, content, "utf-8");
+  };
+
+  public uploadNewVideo = async (payload: Tvideo, fileName: string, dir: string) => {
     if (!payload.folderName) {
       payload.folderName = "";
     }
 
-    const tempCompletePath = path.join(dir, name);
+    const tempCompletePath = path.join(dir, fileName);
     const videoDir = path.join(process.cwd(), VideoService.videosPath, payload.folderName);
-    const indexPath = await this.createTsFiles(tempCompletePath, videoDir, name);
+    const indexPath = await this.createTsFiles(tempCompletePath, videoDir, fileName);
     const groupTitle = payload.folderName;
-    const videoData = await this.createVideoData(name, indexPath, groupTitle, VideoService.videosPath);
+    const videoData = await this.createVideoData(fileName, indexPath, groupTitle, VideoService.videosPath);
     this.addToMaster(videoData);
     return `Video ${payload.name} adicionado com sucesso`;
   };
 
   public uploadNewVideoList = async (payload: Tvideo) => {
+    console.log("payload", payload);
+
     const files = await promiseFs.readdir(this.tempDir);
-    for (let file of files) {
-      const newVideo = await this.uploadNewVideo(payload, file, this.tempDir);
-      await promiseFs.unlink(path.join(this.tempDir, file));
+
+    for (let i = 0; i < files.length; i++) {
+      const newVideoData: Tvideo = {
+        name: payload.name[i],
+        category: payload.category ? payload.category[i] : undefined,
+        folderName: payload.folderName ? payload.folderName[i] : undefined,
+      };
+
+      console.log("novo video", newVideoData);
+
+      const newVideo = await this.uploadNewVideo(newVideoData, files[i], this.tempDir);
+      await promiseFs.unlink(path.join(this.tempDir, files[i]));
     }
   };
 
@@ -81,6 +110,7 @@ class VideoService {
     const ip = this.getLocalIP();
 
     const [name, _] = videoName.split("@@");
+    //arrumar;
 
     const relativePath = videoDir.split(path.sep).join("/");
     const safePath = encodeURI(relativePath);

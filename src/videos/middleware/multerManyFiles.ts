@@ -17,7 +17,6 @@ class saveManyFilesMiddleware {
   }
 
   public UploadVideos = () => {
-    console.log("video vindo");
     const storage = multer.diskStorage({
       destination: (req, file, cb) => {
         cb(null, this.tempDir);
@@ -25,8 +24,7 @@ class saveManyFilesMiddleware {
       filename: (req, file, cb) => {
         const ext = path.extname(file.originalname);
         const base = path.basename(file.originalname, ext);
-        console.log("video");
-        cb(null, `${base}@@${Date.now()}.mp4`);
+        cb(null, `${req.body.name}@@${Date.now()}.mp4`);
       },
     });
 
@@ -39,12 +37,12 @@ class saveManyFilesMiddleware {
     };
 
     const limits: multer.Options["limits"] = {
-      fileSize: 5 * 1024 * 1024 * 1024,
+      fileSize: 10 * 1024 * 1024 * 1024,
     };
 
     const upload = multer({ storage, limits, fileFilter });
 
-    return upload.array("videos");
+    return upload.array("video");
   };
 }
 

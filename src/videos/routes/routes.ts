@@ -7,12 +7,19 @@ import { videoSchema } from "../schema/videoSchema";
 import { debugMiddleware } from "../../@shared/debug.middleware";
 import { multerManyfiles } from "../middleware/multerManyFiles";
 import { testeVideo } from "../middleware/teste";
+import { normalizePayload } from "../middleware/normalizePayload";
 
 export const videoRouter = Router();
 
 // videoRouter.post("/upload", validateVideoMiddleware.validateVideo("video"), bodyValidator.isValid(videoSchema), videoController.uploadNewVideo);
 
-videoRouter.post("/uploads", multerManyfiles.UploadVideos(), videoController.uploadNewListVideo);
+videoRouter.post(
+  "/uploads",
+
+  multerManyfiles.UploadVideos(),
+  normalizePayload.normalizeRequest,
+  videoController.uploadNewListVideo
+);
 
 videoRouter.use("/", express.static(videoService.getVideoPath()));
 videoRouter.get("/master", videoController.getMaster);
